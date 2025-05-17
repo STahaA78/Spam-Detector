@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPAM or HAM Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .result-box {
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .result-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .gradient-text {
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+        }
+        .result-button {
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+        .result-button.active-spam {
+            background: #ef4444;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        .result-button.active-ham {
+            background: #10b981;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        .confidence-circle {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin: 20px auto;
+            background: conic-gradient(var(--progress-color) var(--progress), #2d374850 0deg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (min-width: 640px) {
+            .confidence-circle {
+                width: 120px;
+                height: 120px;
+            }
+        }
+        .confidence-circle::before {
+            content: "";
+            position: absolute;
+            width: 75%;
+            height: 75%;
+            background: #1f2937;
+            border-radius: 50%;
+        }
+        .confidence-value {
+            position: relative;
+            font-size: 1.25rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        @media (min-width: 640px) {
+            .confidence-value {
+                font-size: 1.5rem;
+            }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+    <div class="container mx-auto px-4 py-6 sm:py-12 max-w-3xl min-h-screen flex items-center justify-center">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8 backdrop-blur-lg bg-opacity-50 w-full">
+            <h1 class="text-3xl sm:text-4xl font-bold text-center mb-2 gradient-text">SPAM or HAM</h1>
+            <p class="text-gray-400 text-center text-sm sm:text-base mb-6 sm:mb-8">Message Classification System</p>
+            
+            <form id="spamForm" class="space-y-4 sm:space-y-6">
+                <div class="relative">
+                    <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Enter your message:</label>
+                    <textarea 
+                        id="message" 
+                        name="message" 
+                        rows="4" 
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 text-sm sm:text-base"
+                        placeholder="Type or paste your message here..."
+                    ></textarea>
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 sm:py-3 px-4 sm:px-6 rounded-lg hover:from-blue-600 hover:to-blue-800 transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 text-sm sm:text-base"
+                >
+                    Analyze Message
+                </button>
+            </form>
+
+            <div class="mt-6 sm:mt-8 flex justify-center space-x-2 sm:space-x-4">
+                <div class="result-button w-32 sm:w-40 py-2 sm:py-3 px-4 sm:px-6 rounded-lg text-center font-semibold bg-gray-700 text-sm sm:text-base" id="spamButton">
+                    SPAM
+                </div>
+                <div class="result-button w-32 sm:w-40 py-2 sm:py-3 px-4 sm:px-6 rounded-lg text-center font-semibold bg-gray-700 text-sm sm:text-base" id="hamButton">
+                    HAM
+                </div>
+            </div>
+
+            <div id="result" class="result-box mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg text-center hidden">
+                <!-- Results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('spamForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const message = document.getElementById('message').value;
+            const resultDiv = document.getElementById('result');
+            const spamButton = document.getElementById('spamButton');
+            const hamButton = document.getElementById('hamButton');
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `
+                        <div class="bg-red-900 border-l-4 border-red-500 text-red-100 p-3 sm:p-4 text-sm sm:text-base">
+                            <p>${data.error}</p>
+                        </div>
+                    `;
+                } else {
+                    // Reset button states
+                    spamButton.classList.remove('active-spam');
+                    hamButton.classList.remove('active-ham');
+                    
+                    // Activate appropriate button
+                    const isSpam = data.prediction === 'SPAM';
+                    if (isSpam) {
+                        spamButton.classList.add('active-spam');
+                    } else {
+                        hamButton.classList.add('active-ham');
+                    }
+                    
+                    const confidencePercent = (data.confidence * 100).toFixed(1);
+                    const progressColor = isSpam ? '#ef4444' : '#10b981';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="text-base sm:text-lg">
+                            <p class="text-gray-400 mb-2 text-sm sm:text-base">Confidence Level</p>
+                            <div class="confidence-circle pulse" style="--progress: ${confidencePercent}%; --progress-color: ${progressColor}">
+                                <span class="confidence-value">${confidencePercent}%</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-gray-400 mt-2">
+                                ${isSpam ? 'High chance of being spam' : 'Likely a legitimate message'}
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('show');
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="bg-red-900 border-l-4 border-red-500 text-red-100 p-3 sm:p-4 text-sm sm:text-base">
+                        <p>An error occurred while processing your request.</p>
+                    </div>
+                `;
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html> 
