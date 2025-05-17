@@ -45,10 +45,3 @@ The spam detection model is trained on a dataset of spam and legitimate messages
 - Machine learning classification
 - Probability estimation for confidence scores
 
-## Screenshots
-
-[Add screenshots of your application here]
-
-## License
-
-MIT License - feel free to use this project for learning and development. 
