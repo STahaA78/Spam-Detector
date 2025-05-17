@@ -22,8 +22,8 @@ A modern web application that detects whether a message is spam or legitimate (h
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/SpamDetector.git
-cd SpamDetector
+git clone https://github.com/STahaA78/Spam-Detector
+cd Spam-Detector
 ```
 
 2. Install dependencies:
